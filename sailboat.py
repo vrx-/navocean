@@ -52,6 +52,9 @@ def gen_url(telemetry='min', BB3='min', CI='min', CT='min', O2='min',
 	limit = 'limit=%i' % limit
 	token= 'token=5e5c4d86-3fd9-11eb-904e-06ad0ec96835'
 
+	if limit > 30000:
+		print("WARNING: requesting %i records. \n This will stress navocean's server. If possible resubmit with <30000 records" % limit)
+
 	# build string for variable request
 
 	columns = []
