@@ -2,7 +2,7 @@ name: navocean-environment
 channels:
   - conda-forge
 dependencies:
-  - numpy:1.20.2
+  - numpy=1.20.2
   - matplotlib=3.4.1
   - matplotlib-base=3.4.1
   - pandas=1.2.3
