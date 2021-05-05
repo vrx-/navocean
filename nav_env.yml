@@ -1,0 +1,19 @@
+name: nav
+channels:
+  - conda-forge
+dependencies:
+  - python=3.7   # or 2.7
+  - cartopy=0.17.*
+  - cmocean
+  - dask
+  - geopandas
+  - jupyter
+  - jupyterlab_widgets
+  - netcdf4
+  - numpy=1.20.*
+  - pandas=1.2.*
+  - pillow=8.1.*
+  - xarray
+  - flask
+  - pip:
+    - Flask-Testing
