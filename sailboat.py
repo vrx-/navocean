@@ -223,7 +223,7 @@ def background(extent = [-81.15, -80.51,26.65, 27.24],
 		return fig, ax
 
 
-def plot_path(df, var, start_date=False, end_date=False, ax=None, **kwargs,): 
+def plot_path(df, var, start_date=False, end_date=False, ax=None, colorbar=True, **kwargs,): 
 
 	var_column_name = check_name(var)
 
@@ -231,8 +231,12 @@ def plot_path(df, var, start_date=False, end_date=False, ax=None, **kwargs,):
 		df = select_times(df, start_date=start_date, end_date=end_date)
 
 	if ax is None:
-		fig, ax = background(out=True)
+		fig, ax = background(out=True,)
 
 	mapp = ax.scatter(df['Lon'], df['Lat'], c=df[var_column_name],
 		transform=ccrs.PlateCarree(), **kwargs)
-	plt.colorbar(mapp, label=var_column_name)
+	if colorbar:
+		plt.colorbar(mapp, label=var_column_name)
+
+	return mapp
+
