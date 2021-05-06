@@ -21,7 +21,8 @@ def gen_url(telemetry='min', BB3='min', CI='min', CT='min', O2='min',
 	## base strings and querry dictionaries
 
 	if limit > 30000:
-		print("WARNING: requesting %i records. \n This will stress navocean's server. Pleaseresubmit with limit=%i records" % (limit, 10000))
+		print("WARNING: requesting %i records. \n This will stress navocean's server. Reduing to %i records" % (limit, 10000))
+		limit = 10000
 	
 	group_options = {'telemetry': telemetry, 'BB3': BB3, 'CI': CI, 'CT': CT, 'O2': O2}
 
@@ -139,35 +140,43 @@ def check_date_frmt(date_str):
 		raise ValueError('date must be string YYYY-mm-dd')
 		return
 
-def check_name(name):
+def var_names(df):
+	name_dir = {'time' : 'GPSTimeStamp', 'lon': 'Lon', 'lat': 'Lat',
+			'speed': 'Speed', 'track': 'Track', 'heading': 'Heading', 
+			'pitch': 'Pitch', 'roll': ' Roll',
+			'wind speed': 'WindTrueSpeed', 'wind dir': 'WindTrueDir',
+			'pressure': 'PressureInches', 'air temp': 'AirTemp', 
+			'bb3 time': 'BB3 [Time UTC]',
+			'bb470 counts': 'Bb(470) [counts]', 
+			'bb532 counts': 'Bb(532) [counts]',
+			'bb650  counts':'Bb(650) [counts]',
+			'bb470': 'Bb(470) [NTU]',
+			'bb532': 'Bb(532) [NTU]',
+			'bb650': 'Bb(650) [NTU]', 
+			'ci time': 'CI [Time UTC]',
+			'chla counts': 'Chl. a [counts]',
+			'cdom counts': 'CDOM [counts]',
+			'phyco counts': 'Phycocyanin [counts]',
+			'chla': 'Chl. a [ppb]',
+			'cdom': 'CDOM [QSU]',
+			'phyco': 'Phycocyanin [ppb]',
+			'ct time': 'CT [Time UTC]',
+			'cond': 'Conductivity [mS cm-1]',
+			'temp': 'Temperature [deg C]',
+			'O2 time': 'O2 [Time UTC]',
+			'O2':'O2 Concentration [micromolar]',
+			'O2 sat':'O2 Saturation [%]',
+			'O2 temp': 'O2 Temperature [deg C]',
+			'local time': 'local time'
+			}
+	new_dir = {key: value for key, value in name_dir.items() if value in df.columns}
+	add = set(df.columns).difference(new_dir.values())
+	new_dir.update({key: key for key in add})
+	return new_dir
 
-	variable_to_column_name = {'time' : 'GPSTimeStamp', 'lon': 'Lon', 'lat': 'Lat',
-	                        'speed': 'Speed', 'track': 'Track', 'heading': 'Heading', 
-	                        'pitch': 'Pitch', 'roll': ' Roll',
-	                        'wind speed': 'WindTrueSpeed', 'wind dir': 'WindTrueDir',
-	                        'pressure': 'PressureInches', 'air temp': 'AirTemp', 
-	                        'bb3 time': 'BB3 [Time UTC]',
-	                        'bb470 counts': 'Bb(470) [counts]', 
-	                        'bb532 counts': 'Bb(532) [counts]',
-	                        'bb650  counts':'Bb(650) [counts]',
-	                        'bb470': 'Bb(470) [NTU]',
-	                        'bb532': 'Bb(532) [NTU]',
-	                        'bb650': 'Bb(650) [NTU]', 
-	                        'ci time': 'CI [Time UTC]',
-	                        'chla counts': 'Chl. a [counts]',
-	                        'cdom counts': 'CDOM [counts]',
-	                        'phyco counts': 'Phycocyanin [counts]',
-	                        'chla': 'Chl. a [ppb]',
-	                        'cdom': 'CDOM [QSU]',
-	                        'phyco': 'Phycocyanin [ppb]',
-	                        'ct time': 'CT [Time UTC]',
-	                        'cond': 'Conductivity [mS cm-1]',
-	                        'temp': 'Temperature [deg C]',
-	                        'O2 time': 'O2 [Time UTC]',
-	                        'O2':'O2 Concentration [micromolar]',
-	                        'O2 sat':'O2 Saturation [%]',
-	                        'O2 temp': 'O2 Temperature [deg C]',
-	                       }
+
+def check_name(df, name):
+	variable_to_column_name = var_names(df)
 	if name in variable_to_column_name.keys():
 		return variable_to_column_name[name]
 	else:
@@ -175,19 +184,21 @@ def check_name(name):
 
 
 def scatter(df, x_var, y_var, z_var='bb470',cmap='jet',
-	start_date=False, end_date=False, **kwargs):
-	x_name = check_name(x_var)
-	y_name = check_name(y_var)
+	start_date=False, end_date=False, ax=None, **kwargs):
+	x_name = check_name(df, x_var)
+	y_name = check_name(df, y_var)
 
 	if z_var:
-		z_name = check_name(z_var)
+		z_name = check_name(df, z_var)
 	else:
 		z_name = None
 	
 	if any([start_date, end_date]):
 		df = select_times(start_date=start_date, end_date=end_date)
 
-	df.plot.scatter(x_name, y_name, c=z_name, cmap=cmap, **kwargs)
+	if ax is None:
+		fig, ax = plt.subplots()
+	return df.plot.scatter(x_name, y_name, c=z_name, cmap=cmap, ax=ax, **kwargs)
 
 
 def background(extent = [-81.15, -80.51,26.65, 27.24],
@@ -225,7 +236,7 @@ def background(extent = [-81.15, -80.51,26.65, 27.24],
 
 def plot_path(df, var, start_date=False, end_date=False, ax=None, colorbar=True, **kwargs,): 
 
-	var_column_name = check_name(var)
+	var_column_name = check_name(df, var)
 
 	if any([start_date, end_date]):
 		df = select_times(df, start_date=start_date, end_date=end_date)
