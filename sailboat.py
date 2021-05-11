@@ -110,7 +110,7 @@ def get_data(path, date_vars=['GPSTimeStamp']):
 			file = request.raw
 		else:	
 			file = path
-		return load_csv(path, date_vars=date_vars)
+		df = load_csv(path, date_vars=date_vars)
 
 	elif type(path) is list:
 		li = []
