@@ -3,7 +3,7 @@ name: navocean-environment
 channels:
   - conda-forge
 dependencies:
-  - Cartopy=0.17.0
+  - cartopy=0.17.0
   - numpy=1.20.*
   - matplotlib=3.4.*
   - matplotlib-base=3.4.*
