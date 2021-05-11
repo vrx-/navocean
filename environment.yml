@@ -2,12 +2,12 @@ name: navocean-environment
   -python=3.7
 channels:
   - conda-forge
+  - defaults
 dependencies:
+  - Cartopy=0.18.*
   - cython
-  - numpy=1.20.2
-  - matplotlib=3.4.1
-  - matplotlib-base=3.4.1
-  - pandas=1.2.3
-  - cartopy=0.17.0
-  - dask=2021.4.0
-  - pillow=8.1.2
+  - numpy=1.20.*
+  - matplotlib=3.4.*
+  - matplotlib-base=3.4.*
+  - pandas=1.2.*
+  - pillow=8.1.*
