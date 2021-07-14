@@ -13,7 +13,7 @@ from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from cmocean import cm as ccmo
 
 
-def gen_url(telemetry='min', BB3='min', CI='min', CT='min', O2='min',
+def gen_url(telemetry='min', BB3=None, CI='min', CT=None, O2=None,
 			path=None, date_interval=None, limit=100):
 
 	## Returns string for URL ans list of names date type variables requested
@@ -21,15 +21,18 @@ def gen_url(telemetry='min', BB3='min', CI='min', CT='min', O2='min',
 	## base strings and querry dictionaries
 
 	if limit > 30000:
-		print("WARNING: requesting %i records. \n This will stress navocean's server. Reduing to %i records" % (limit, 10000))
+		print("WARNING: requesting %i records. \n This will stress navocean's server. Reducing to %i records" % (limit, 10000))
 		limit = 10000
 	
 	group_options = {'telemetry': telemetry, 'BB3': BB3, 'CI': CI, 'CT': CT, 'O2': O2}
 
 	querry = {
 	'telemetry' : {
-		'all': ['GPSTimeStamp', '2CLon', '2CLat', '2CSpeed', '2CTrack', '2CHeading', '2CPitch', '2CRoll', '2CWindTrueSpeed', '2CWindTrueDir', '2CPressureInches', '2CAirTemp'],
-        'min': ['GPSTimeStamp', '2CLon', '2CLat', '2CTrack', '2CHeading']
+		'all': ['GPSTimeStamp', '2CLon', '2CLat', '2CSpeed', '2CTrack', '2CHeading', '2CPitch', '2CRoll',
+				'2CWindAppSpeed', '2CWindDegOffBow','2CWindTrueSpeed', '2CWindTrueDir', '2CPressureInches', '2CAirTemp'],
+        'min': ['GPSTimeStamp', '2CLon', '2CLat', '2CTrack', '2CHeading'],
+        'atmo': ['GPSTimeStamp', '2CLon', '2CLat','2CPressureInches', '2CAirTemp',
+        		 '2CWindAppSpeed', '2CWindDegOffBow', '2CWindTrueSpeed', '2CWindTrueDir',]
                     },
     'BB3' : {
     	'all' : ['2CBB3+%5BTime+UTC%5D', '2CBb%28470%29+%5Bcounts%5D', '2CBb%28532%29+%5Bcounts%5D', '2CBb%28650%29+%5Bcounts%5D', '2CBb%28470%29+%5BNTU%5D', '2CBb%28532%29+%5BNTU%5D', '2CBb%28650%29+%5BNTU%5D'],
@@ -125,16 +128,16 @@ def get_data(path, date_vars=['GPSTimeStamp']):
 
 def select_times(df, start_date=False, end_date=False):
 	if start_date:
-		start_date_val = check_date_frmt(start_date)
+		start_date_val = check_date_frmt(start_date).astimezone(eastern)
 		df = df[df['local time']>=start_date_val]
 	if end_date:
-		end_date_val = heck_date_frmt(end_date)
+		end_date_val = check_date_frmt(end_date).astimezone(eastern)
 		df = df[df['local time']<=end_date_val]
 	return df
 
 def check_date_frmt(date_str):
 	try:
-		date = datetime.strptime(date_str, '%Y-%m-%d').tz_localize(eastern)
+		date = datetime.strptime(date_str, '%Y-%m-%d')
 		return date
 	except:
 		raise ValueError('date must be string YYYY-mm-dd')
@@ -203,7 +206,7 @@ def scatter(df, x_var, y_var, z_var='bb470',cmap='jet',
 
 def background(extent = [-81.15, -80.51,26.65, 27.24],
 			request = cimgt.GoogleTiles(style='satellite'),
-			ax=None,  projection=None, out = False):
+			ax=None,  projection=None, grid=True, out = False):
 	# Plots lake O background map
 
 	if request is None:
@@ -219,24 +222,31 @@ def background(extent = [-81.15, -80.51,26.65, 27.24],
 
 	ax.set_extent(extent)
 
-	try:
-		gl = ax.gridlines(draw_labels=True, alpha=0.2)
-		gl.xlabels_top = gl.ylabels_right = False
-		gl.xformatter = LONGITUDE_FORMATTER
-		gl.yformatter = LATITUDE_FORMATTER    
-	except:
-		print('Projection does not allow gridlines')
+	if grid:
+		try:
+			gl = ax.gridlines(draw_labels=True, alpha=0.2)
+			gl.xlabels_top = gl.ylabels_right = False
+			gl.xformatter = LONGITUDE_FORMATTER
+			gl.yformatter = LATITUDE_FORMATTER    
+		except:
+			print('Projection does not allow gridlines')
 
 	if image:
 		ax.add_image(request, 10)
 
-	if out is True:
+	if out:
 		return fig, ax
 
 
-def plot_path(df, var, start_date=False, end_date=False, ax=None, colorbar=True, **kwargs,): 
+def plot_path(df, var, s=None, start_date=False, end_date=False, ax=None, colorbar=True, **kwargs,): 
 
 	var_column_name = check_name(df, var)
+
+	if s is None:
+		s = 10
+
+	else:
+		s = df[check_name(df, s)]
 
 	if any([start_date, end_date]):
 		df = select_times(df, start_date=start_date, end_date=end_date)
@@ -245,6 +255,7 @@ def plot_path(df, var, start_date=False, end_date=False, ax=None, colorbar=True,
 		fig, ax = background(out=True,)
 
 	mapp = ax.scatter(df['Lon'], df['Lat'], c=df[var_column_name],
+		s = s,
 		transform=ccrs.PlateCarree(), **kwargs)
 	if colorbar:
 		plt.colorbar(mapp, label=var_column_name)
