@@ -13,8 +13,8 @@ from cartopy.mpl.gridliner import LONGITUDE_FORMATTER, LATITUDE_FORMATTER
 from cmocean import cm as ccmo
 
 
-def gen_url(telemetry='min', BB3=None, CI='min', CT=None, O2=None,
-			path=None, date_interval=None, limit=100):
+def gen_url(telemetry='min', BB3='min', CI='min', CT='min', O2='min',
+			date_interval=None, tz='local', limit=1000):
 
 	## Returns string for URL ans list of names date type variables requested
 
@@ -57,6 +57,7 @@ def gen_url(telemetry='min', BB3=None, CI='min', CT=None, O2=None,
 	root_url = 'http://portal.navocean.com/services/nav.php?req=data&id=VELA'
 	fmtt = 'format=csv&output=file'
 	limit = 'limit=%i' % limit
+
 	token= 'token=5e5c4d86-3fd9-11eb-904e-06ad0ec96835'
 
 
@@ -79,8 +80,14 @@ def gen_url(telemetry='min', BB3=None, CI='min', CT=None, O2=None,
     # build string for date request
 
 	if date_interval:
-		time = 'start='+date_interval[0]+"+00%3A00%3A00&end="+date_interval[1]+"+00%3A00%3A00"
-		url = '&'.join([root_url, columns, fmtt, time, token]), date_vars
+		if tz is 'local':
+			start = datetime.strptime(date_interval[0], '%Y-%m-%d').astimezone(pytz.timezone('utc')).strftime('%Y-%m-%d+%H')
+			end = datetime.strptime(date_interval[1], '%Y-%m-%d').astimezone(pytz.timezone('utc')).strftime('%Y-%m-%d+%H')
+		else:
+			start = date_interval[0]+'+00'
+			end = date_interval[1]+'+00'
+		time = 'start='+start+'%3A00%3A00&end='+end+'%3A00%3A00'
+		url = '&'.join([root_url, columns, fmtt, time, token]) #, date_vars
 	else:
 		url = '&'.join([root_url, columns, fmtt, limit, token])
 
@@ -113,7 +120,7 @@ def get_data(path, date_vars=['GPSTimeStamp']):
 			file = request.raw
 		else:	
 			file = path
-		df = load_csv(path, date_vars=date_vars)
+		df = load_csv(file, date_vars=date_vars)
 
 	elif type(path) is list:
 		li = []
@@ -206,9 +213,9 @@ def scatter(df, x_var, y_var, z_var='bb470',cmap='jet',
 
 def background(extent = [-81.15, -80.51,26.65, 27.24],
 			request = cimgt.GoogleTiles(style='satellite'),
-			ax=None,  projection=None, grid=True, out = False):
+			ax=None,  projection=None, grid=True,):
 	# Plots lake O background map
-
+	out = 0
 	if request is None:
 		projection = projection
 		image = False
@@ -219,23 +226,30 @@ def background(extent = [-81.15, -80.51,26.65, 27.24],
 	if ax is None:
 		fig = plt.figure(figsize=(10, 10))
 		ax = plt.axes(projection=projection)
+		out =+2
 
 	ax.set_extent(extent)
 
 	if grid:
 		try:
 			gl = ax.gridlines(draw_labels=True, alpha=0.2)
-			gl.xlabels_top = gl.ylabels_right = False
+			gl.top_labels = gl.right_labels = False
 			gl.xformatter = LONGITUDE_FORMATTER
-			gl.yformatter = LATITUDE_FORMATTER    
+			gl.yformatter = LATITUDE_FORMATTER
+			out =+1 
 		except:
 			print('Projection does not allow gridlines')
 
 	if image:
 		ax.add_image(request, 10)
 
-	if out:
-		return fig, ax
+	if out > 0:
+		if out == 1:
+			return gl
+		if out == 2:
+			return fig, ax
+		if out == 3:
+			return fig, ax, gl
 
 
 def plot_path(df, var, s=None, start_date=False, end_date=False, ax=None, colorbar=True, **kwargs,): 
